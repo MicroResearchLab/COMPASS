@@ -1,4 +1,4 @@
-# ComFaceID
+# COMPASS
 
 [![Web Demo](https://img.shields.io/badge/Service-Web_Demo-blue)](https://npcompass.xulab.cloud/) [![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)
 
@@ -8,7 +8,7 @@
 
 ## 🌟 Core Functionalities
 
-ComFaceID is a foundation model that supports diverse downstream tasks:
+COMPASS is a foundation model that supports diverse downstream tasks:
 
 1. **Spectral Library Search**: Maps MS² spectra into 500-dimensional embeddings for rapid similarity search.
 2. **Structural Classification**: Automatically categorizes compounds into chemical classes and superclasses.
@@ -58,8 +58,8 @@ bash download_resources.sh
 ### 1. Installation
 
 ```bash
-git clone <https://github.com/MicroResearchLab/ComFaceID.git>
-cd ComFaceID
+git clone <https://github.com/MicroResearchLab/COMPASS.git>
+cd COMPASS
 pip install -r requirements.txt
 
 ```
@@ -176,4 +176,4 @@ Typically requires less than 10 minutes.
 
 ## <span id="webservice"> 🌐 Web Service </span>
 
-An online demo is available for quick validation of small batches:👉  [Access ComFaceID](https://npcompass.xulab.cloud/) (or use this [link](https://npcompass.zju.edu.cn/) for Mainland China).
+An online demo is available for quick validation of small batches:👉  [Access COMPASS](https://npcompass.xulab.cloud/) (or use this [link](https://npcompass.zju.edu.cn/) for Mainland China).
