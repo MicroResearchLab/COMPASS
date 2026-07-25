@@ -44,7 +44,7 @@ bash download_resources.sh
 
 ### Software
 *   **Operating System**: Ubuntu 20.04 LTS
-*   **Python**: Version 3.8
+*   **Python**: Version 3.8/3.10
 *   **Dependencies**: Please refer to `requirements.txt` for specific package versions.
 
 ### Installation Time
