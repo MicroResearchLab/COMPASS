@@ -1,0 +1,10 @@
+{
+  "similarity_threshold": 0.9,
+  "datasets": {
+    "CASMI2022": {
+      "COMPASS": "CASMI/search_results/Compass_sfpr_search_results.pkl",
+      "DreaMS": "CASMI/search_results/DreamMS_sfpr_search_results.pkl",
+      "SIRIUS": "CASMI/search_results/Sirius_sfpr_search_results.pkl"
+    }
+  }
+}
