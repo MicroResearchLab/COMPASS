@@ -145,6 +145,49 @@ Outputs from `main.py` are generated in the `output/` folder with timestamped fi
 
 Typically requires less than 10 minutes.
 
+#### How to interpret the output
+
+Each input precursor may produce multiple candidate rows. Read the results by grouping rows with the same source file and precursor, then compare the candidates within that group. Rankings and similarity values are most useful for prioritization; they are not, by themselves, definitive structure identifications.
+
+##### Compound library retrieval (`<timestamp>-similarity-matching.csv`)
+
+The exact column order may vary by release, but the output uses the following fields described by the COMPASS web service:
+
+| Column | Meaning | Interpretation |
+| --- | --- | --- |
+| `file` | Source file associated with the query spectrum. | Use it together with `precursor` to trace a result back to the input feature. |
+| `precursor` | Precursor-ion m/z of the query spectrum. | Rows with the same file and precursor belong to the same query feature. |
+| `pred_fpr` | Molecular fingerprint predicted from the query MS² spectrum. | This is the model-derived structural feature representation used for library retrieval. |
+| `inchikey` | InChIKey of a matched database compound. | Paste it into [PubChem](https://pubchem.ncbi.nlm.nih.gov/) to inspect the candidate structure and metadata. |
+| `name` | Name of the matched compound. | Treat this as a candidate annotation and verify it with the remaining evidence. |
+| `mass` | Exact mass of the matched compound. | Compare it with the mass implied by the precursor ion and the expected adduct. |
+| `formula` | Molecular formula of the matched compound. | Check whether it agrees with the measured mass, ion mode, adduct, isotope pattern, and other experimental information. |
+| `smiles` | SMILES representation of the matched compound. | Use it in PubChem or structure software such as ChemDraw to view the candidate structure. |
+| `sim` | Fingerprint similarity between the predicted query fingerprint and the matched compound. | Larger values indicate greater fingerprint similarity; compare candidates from the same query feature. |
+| `sim rank` | Rank of the candidate by fingerprint similarity. | Rank 1 is the highest-ranked candidate for that query feature. |
+
+If spectral-library-search fields are present, interpret them as follows:
+
+| Column | Meaning | Interpretation |
+| --- | --- | --- |
+| `sid` | Query identifier containing the m/z and source file. | Use it to group and trace results to the input spectrum. |
+| `Precursor` | Precursor-ion m/z. | Confirm that the candidate is being compared with the intended feature. |
+| `Cosine Score` | Cosine-based comparison between the query and library spectral embeddings. | Use it to rank library matches within the same query; inspect the implementation/version before applying a fixed cutoff because some exports label similarity or distance differently. |
+| `PubChem_InChIkey` | InChIKey of the matched compound. | Look it up in PubChem and verify the proposed identity with orthogonal evidence. |
+
+##### Structural classification (`<timestamp>-classification.csv`)
+
+COMPASS predicts both ClassyFire **Superclass** and **Class** labels. Depending on the release, the two levels may be stored in one timestamped file or in separate `superclass` and `class` CSV files.
+
+| Column | Meaning | Interpretation |
+| --- | --- | --- |
+| `file` | Source file associated with the query feature. | Use it together with `precursor` to locate the original spectrum. |
+| `precursor` | Precursor-ion m/z. | Identifies the feature being classified. |
+| `predict` | Most likely Class or Superclass assignment. | This is the primary predicted label at the level represented by the file. |
+| Other class columns | Scores or overlapping predictions for other Class/Superclass categories. | Review them when several categories receive similar support; a close result is less decisive than a clearly dominant prediction. |
+
+Use the classification as supporting structural evidence rather than a complete compound identification. Agreement among the predicted class, library candidate, exact mass, formula, and experimental context increases confidence.
+
 ### 6. Metabolite Structural Novelty Score (MSNs)
 
 After generating the similarity and classification results via `main.py`, you can utilize the **Metabolite Structural Novelty Score (MSNs)** to identify potentially novel compounds.
@@ -173,6 +216,26 @@ Outputs from `MSNs.py` are generated in the `output/` folder with timestamped fi
 - `output/<timestamp>-distance_results.csv`
 
 Typically requires less than 10 minutes.
+
+#### How to interpret the MSNs output
+
+MSNs combines molecular-fingerprint similarity, structural-class information, and exact-mass deviation to prioritize compounds by structural novelty.
+
+| Column | Meaning | Interpretation |
+| --- | --- | --- |
+| `sid` | Query identifier containing the m/z and source file. | Links the score to the original input feature. |
+| `Precursor` | Precursor-ion m/z. | Identifies the scored feature. |
+| `Fingerprint_sim` | Tanimoto similarity between the query's predicted fingerprint and the matched compound. | Larger values mean greater structural-feature similarity to the database candidate. |
+| `PubChem_InChIkey` | InChIKey of the matched compound. | Use PubChem to inspect the matched reference structure. |
+| `PubChem_SMILES` | SMILES of the matched compound. | Use it to visualize or analyze the reference structure. |
+| `PubChem_Exact_Mass` | Exact mass of the matched compound. | Compare with the precursor-derived neutral mass using the correct ion/adduct assignment. |
+| `COMPASS_Class_Result` | Highest-confidence predicted structural class. | Check whether the class is chemically consistent with the matched candidate and sample context. |
+| `ABS (match-true)` | Absolute exact-mass deviation between the matched structure and query. | Smaller deviations indicate closer mass agreement. |
+| `Class_P` | Classification confidence. | Larger values indicate stronger support for the reported class. |
+| `Lambda` | A value in `(0, 1]` that nonlinearly scales exact-mass deviation and is especially sensitive to small deviations. | Interpret it together with the raw mass deviation rather than as an independent identification score. |
+| `MSNs` | Metabolite Structural Novelty Score. | Use it as a relative prioritization score across features from the same analysis, then examine its component evidence and validate promising features experimentally. |
+
+For practical review, start with the features prioritized by `MSNs`, inspect `Fingerprint_sim`, `ABS (match-true)`, and `Class_P`, then verify the proposed structures using precursor/adduct assignment, MS/MS fragments, retention behavior, authentic standards, and biological context where available.
 
 ## <span id="webservice"> 🌐 Web Service </span>
 
