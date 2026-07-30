@@ -237,6 +237,17 @@ MSNs combines molecular-fingerprint similarity, structural-class information, an
 
 For practical review, start with the features prioritized by `MSNs`, inspect `Fingerprint_sim`, `ABS (match-true)`, and `Class_P`, then verify the proposed structures using precursor/adduct assignment, MS/MS fragments, retention behavior, authentic standards, and biological context where available.
 
+## Reproducibility benchmarks
+
+The scripts used to reproduce the fingerprint-prediction and structural-
+classification benchmarks are available in the
+[`paper-benchmark-v1`](https://github.com/MicroResearchLab/COMPASS/tree/paper-benchmark-v1)
+branch.
+
+Fingerprint retrieval labels are defined strictly as:
+
+`true fingerprint Tanimoto similarity > 0.9`
+
 ## <span id="webservice"> 🌐 Web Service </span>
 
 An online demo is available for quick validation of small batches:👉  [Access COMPASS](https://npcompass.xulab.cloud/) (or use this [link](https://npcompass.zju.edu.cn/) for Mainland China).
