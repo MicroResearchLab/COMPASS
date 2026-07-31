@@ -40,8 +40,7 @@ def add_part_3(data_df:pd.DataFrame, class_dict:dict, class_p:dict):
         class_p = data_df.loc[data_df_index, "class_p"]
         lambda_mass = data_df.loc[data_df_index, "lambda"]
         que = np.array([ sim, class_p , lambda_mass])
-        data_df.loc[data_df_index,"distance"] = distance(que, np.array([1, 1, 1]))
-        data_df.loc[data_df_index,"mult"] = sim* class_p * lambda_mass
+        data_df.loc[data_df_index,"MSNs"] = distance(que, np.array([1, 1, 1]))
 
     data_df = data_df.drop(columns=[ "short_key"])
 
