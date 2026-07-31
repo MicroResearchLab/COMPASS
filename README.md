@@ -226,10 +226,9 @@ MSNs combines molecular-fingerprint similarity, structural-class information, an
 | `sid` | Query identifier containing the m/z and source file. | Links the score to the original input feature. |
 | `Precursor` | Precursor-ion m/z. | Identifies the scored feature. |
 | `Fingerprint_sim` | Tanimoto similarity between the query's predicted fingerprint and the matched compound. | Larger values mean greater structural-feature similarity to the database candidate. |
-| `PubChem_InChIkey` | InChIKey of the matched compound. | Use PubChem to inspect the matched reference structure. |
-| `PubChem_SMILES` | SMILES of the matched compound. | Use it to visualize or analyze the reference structure. |
+| `pubchem_inchikey` | InChIKey of the matched compound. | Use PubChem to inspect the matched reference structure. |
 | `PubChem_Exact_Mass` | Exact mass of the matched compound. | Compare with the precursor-derived neutral mass using the correct ion/adduct assignment. |
-| `COMPASS_Class_Result` | Highest-confidence predicted structural class. | Check whether the class is chemically consistent with the matched candidate and sample context. |
+| `Hit-class` | Highest-confidence predicted structural class. | Check whether the class is chemically consistent with the matched candidate and sample context. |
 | `ABS (match-true)` | Absolute exact-mass deviation between the matched structure and query. | Smaller deviations indicate closer mass agreement. |
 | `Class_P` | Classification confidence. | Larger values indicate stronger support for the reported class. |
 | `Lambda` | A value in `(0, 1]` that nonlinearly scales exact-mass deviation and is especially sensitive to small deviations. | Interpret it together with the raw mass deviation rather than as an independent identification score. |
