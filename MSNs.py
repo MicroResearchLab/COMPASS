@@ -23,11 +23,11 @@ def add_part_3(data_df:pd.DataFrame, class_dict:dict, class_p:dict):
     data_df["short_key"] = data_df["pubchem_inchikey"].apply(
         lambda x: x.split("-")[0] if isinstance(x, str) else ""    )
     data_df["short_key"] = data_df["short_key"].astype(str)
-    data_df["dl-result-class"] = data_df["short_key"].apply(
+    data_df["Hit-class"] = data_df["short_key"].apply(
         lambda x: class_dict.get(x, 'Unknown')
     )
     data_df["ABS(match-true)"] = abs(data_df["pubchem_mass"]-data_df["precursor"])
-    data_df["class_p"] = data_df["dl-result-class"].apply(
+    data_df["class_p"] = data_df["Hit-class"].apply(
         lambda x: class_p.get(x, 1e-20)
     )
     data_df["lambda"] = data_df["ABS(match-true)"].apply(
