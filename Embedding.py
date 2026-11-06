@@ -1,30 +1,53 @@
 from model import Net
-from library.spectrum_library import SpectrumCollection
+from Library.spectrum_library import SpectrumCollection
 import pandas as pd
 import tensorflow as tf
-import numpy as np
 import pickle
 import os
 import time
-
-from class_model import Net as class_net
 from matchms.filtering import interpret_pepmass, normalize_intensities
-# from model_tensorflow import Net
 from ms2deepscore import MS2DeepScore
 from toolbox.ms2deepscore import SpectrumBinner
-
-from arg_parser import parse_args
+import argparse
+from arg_parser import str2bool
 from com_data_create import com_data_generate
 from toolbox.MGF import MGF
 from toolbox.mstool import  default_filters
 
 import torch
 
+def parse_args():
+    parser = argparse.ArgumentParser(
+        description="Generate spectral embeddings."
+    )
+    parser.add_argument(
+        "--inten_thresh", type=float, required=True
+    )
+    parser.add_argument(
+        "--rt", type=float, required=True
+    )
+    parser.add_argument(
+        "--ppm", type=float, required=True
+    )
+    parser.add_argument(
+        "--msdelta", type=float, required=True
+    )
+    parser.add_argument(
+        "--if_merge_samples_byenergy",
+        type=str2bool, default=False
+    )
+    parser.add_argument(
+        "--min_mz_num", type=float, required=True
+    )
+    parser.add_argument(
+        "--remove_precursor",
+        type=str2bool, default=True
+    )
+    return parser.parse_args()
+
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 checkpoint_path =  "base_model/"
-ds_model_checkpoint_path = "fpr_model/"
-fpr_database_path = "fpr_database/CONAPUS_pubchem_export.csv"
 input_peak_table = "input/peaktable/"
 SourceDatabasePath = "input/files/"
 TmpPath = "input/tmp_mgf/"
@@ -112,7 +135,6 @@ for file in os.listdir(SourceDatabasePath):
             np_sp,spectrum = com_data_generate(spectrum)
             spectrum = interpret_pepmass(spectrum)
             spectrum = default_filters(spectrum)
-            # Scale peak intensities to maximum of 1
             spectrum = normalize_intensities(spectrum)
             sourceSpectrums.append(spectrum)
             com_spectrum.append(np_sp)
@@ -148,7 +170,6 @@ for sourceSpec in sourceSpectrums[:]:
                                                              )[0]
     pub1, mac1 = None, None
     tf.stop_gradient(reference_vector)
-    print("predicting class and super class ...")
     embedding_vector = torch.tensor(
             reference_vector, dtype=torch.float32).cpu()
     mass = float(sourceSpec.get("pepmass")[0])
@@ -167,6 +188,6 @@ if not os.path.exists("output/"):
     os.mkdir("output/")
 
 from datetime import datetime
-timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+timestamp = datetime.now().strftime("%Y-%m-%d_%H")
 with open("output/{}-embedding_results.pkl".format(timestamp), "wb") as f:
     pickle.dump(result, f)

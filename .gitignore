@@ -2,3 +2,12 @@
 *.pkl
 *.csv
 *.pth
+*.egg-info
+*tmp*
+output*
+__pycache__*
+base_model/*
+class_model/class/*
+class_model/superclass/*
+fpr_database/*
+fpr_model/*

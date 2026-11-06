@@ -60,7 +60,10 @@ bash download_resources.sh
 ```bash
 git clone <https://github.com/MicroResearchLab/COMPASS.git>
 cd COMPASS
-pip install -r requirements.txt
+conda create -n COMPASS python=3.10 -c conda-forge
+conda activate COMPASS
+python -m pip install -e .
+python -m pip install -r requirements.txt
 
 ```
 
@@ -112,7 +115,7 @@ python main.py --filter_mass 2000 \
                --inten_thresh 1 \
                --rt 30 \
                --ppm 20 \
-               --msdelta 0.01 \\
+               --msdelta 0.01 \
                --if_merge_samples_byenergy false \
                --min_mz_num 2 \
                --remove_precursor true \
@@ -226,15 +229,15 @@ MSNs combines molecular-fingerprint similarity, structural-class information, an
 | `sid` | Query identifier containing the m/z and source file. | Links the score to the original input feature. |
 | `Precursor` | Precursor-ion m/z. | Identifies the scored feature. |
 | `Fingerprint_sim` | Tanimoto similarity between the query's predicted fingerprint and the matched compound. | Larger values mean greater structural-feature similarity to the database candidate. |
-| `pubchem_inchikey` | InChIKey of the matched compound. | Use PubChem to inspect the matched reference structure. |
+| `PubChem_InChIkey` | InChIKey of the matched compound. | Use PubChem to inspect the matched reference structure. |
 | `PubChem_Exact_Mass` | Exact mass of the matched compound. | Compare with the precursor-derived neutral mass using the correct ion/adduct assignment. |
-| `Hit-class` | Highest-confidence predicted structural class. | Check whether the class is chemically consistent with the matched candidate and sample context. |
-| `ABS (match-true)` | Absolute exact-mass deviation between the matched structure and query. | Smaller deviations indicate closer mass agreement. |
+| `ComfaceID_Class_Result` | Highest-confidence predicted structural class. | Check whether the class is chemically consistent with the matched candidate and sample context. |
+| `Mass_Error` | Absolute exact-mass deviation between the matched structure and query. | Smaller deviations indicate closer mass agreement. |
 | `Class_P` | Classification confidence. | Larger values indicate stronger support for the reported class. |
 | `Lambda` | A value in `(0, 1]` that nonlinearly scales exact-mass deviation and is especially sensitive to small deviations. | Interpret it together with the raw mass deviation rather than as an independent identification score. |
 | `MSNs` | Metabolite Structural Novelty Score. | Use it as a relative prioritization score across features from the same analysis, then examine its component evidence and validate promising features experimentally. |
 
-For practical review, start with the features prioritized by `MSNs`, inspect `Fingerprint_sim`, `ABS (match-true)`, and `Class_P`, then verify the proposed structures using precursor/adduct assignment, MS/MS fragments, retention behavior, authentic standards, and biological context where available.
+For practical review, start with the features prioritized by `MSNs`, inspect `Fingerprint_sim`, `Mass_Error`, and `Class_P`, then verify the proposed structures using precursor/adduct assignment, MS/MS fragments, retention behavior, authentic standards, and biological context where available.
 
 ## Reproducibility benchmarks
 

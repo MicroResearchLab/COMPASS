@@ -40,7 +40,7 @@ def parse_args():
     parser.add_argument('--remove_precursor', type=str2bool, default=True,
                         help='Remove precursor (default: true)')
 
-    parser.add_argument('--output_num', type=float, required=True,
+    parser.add_argument('--output_num', type=int, required=True,
                         help='Output number of the most similar molecules (default: 20)', default=20)
 
 

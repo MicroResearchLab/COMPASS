@@ -3,7 +3,8 @@ from scipy.special import softmax
 import pandas as pd
 import numpy as np
 import datetime
-from arg_parser import parse_args
+import argparse
+PROTON_MASS = 1.007276466621
 
 def method1_softmax_div_max(row):
     meta_data = row.values.astype(float)
@@ -24,6 +25,11 @@ def distance(vec1, vec2):
 
 def add_part_3(data_df:pd.DataFrame, class_dict:dict, class_p:dict):
     data_df = data_df.reset_index(drop=True)
+    data_df["sid"] = [
+        str(file).replace("\\", "/").split("/")[-1].split(".")[0]
+        + "_" + str(float(mass))
+        for file, mass in zip(data_df["file"], data_df["mass"])
+    ]
     data_df["short_key"] = data_df["pubchem_inchikey"].apply(
         lambda x: x.split("-")[0] if isinstance(x, str) else ""    )
     data_df["short_key"] = data_df["short_key"].astype(str)
@@ -49,17 +55,78 @@ def add_part_3(data_df:pd.DataFrame, class_dict:dict, class_p:dict):
 
     return data_df
 
-if __name__=='__main__':
-    params = parse_args()
-    sim_score_file_path = params.sim_score_file_path
-    class_results_file_path = params.class_results_file_path
-    sim_score_df = pd.read_csv(sim_score_file_path)
-    sim_score_df = sim_score_df.rename(columns={"inchikey": "pubchem_inchikey","mass": "pubchem_mass"})
-    with open(class_results_file_path, 'r') as f:
-        class_res = json.load(f)
-    compound_class_json = "compound_class.json"
-    with open(compound_class_json, 'r') as f:
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--sim_score_file_path", required=True)
+    parser.add_argument("--class_results_file_path", required=True)
+    params = parser.parse_args()
+
+    # Keep spectrum indices as strings for matching.
+    sim_score_df = pd.read_csv(
+        params.sim_score_file_path,
+        dtype={"file": str, "index": str}
+    )
+    class_df = pd.read_csv(
+        params.class_results_file_path,
+        dtype={"file": str, "index": str}
+    )
+
+    if "class_probabilities" not in class_df.columns:
+        raise ValueError(
+            "Classification CSV has no class_probabilities column. "
+            "Rerun main.py after adding probability export."
+        )
+
+    if class_df.duplicated(["file", "index"]).any():
+        raise ValueError("Duplicate spectrum keys in classification CSV.")
+
+    class_lookup = class_df.set_index(
+        ["file", "index"]
+    )["class_probabilities"].to_dict()
+
+    with open("compound_class.json", "r") as f:
         compound_class = json.load(f)
-    results = add_part_3(sim_score_df, compound_class, class_res)
-    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    results.to_csv('output/{}-distance_results.csv'.format(timestamp), index=False)
+
+    sim_score_df = sim_score_df.rename(columns={
+        "inchikey": "pubchem_inchikey",
+        "mass": "pubchem_mass",
+        "precursor": "mass",
+        "pred_sim": "sim"
+    })
+
+    result_parts = []
+    for key, group in sim_score_df.groupby(
+        ["file", "index"], sort=False, dropna=False
+    ):
+        if key not in class_lookup:
+            raise ValueError(
+                f"No classification probabilities for spectrum {key}"
+            )
+        class_p = json.loads(class_lookup[key])
+        result_parts.append(
+            add_part_3(group.copy(), compound_class, class_p)
+        )
+
+    if not result_parts:
+        raise ValueError("Similarity CSV contains no candidate rows.")
+
+    results = pd.concat(result_parts, ignore_index=True)
+    timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H")
+    results = results[["sid","mass","file","index","pubchem_inchikey","pubchem_mass","formula","smiles","sim","Hit-class","class_p","ABS(match-true)","lambda","MSNs"]]
+    results = results.rename(
+            columns={
+                "mass": "Precursor",
+                "Hit-class": "ComfaceID_Class_Result",
+                "sim": "Fingerprint_Sim",
+                "pubchem_inchikey": "PubChem_InChIkey",
+                "pubchem_smiles": "PubChem_SMILES",
+                "pubchem_mass": "PubChem_Exact_Mass",
+                "ABS(match-true)": "Mass_Error",
+                "class_p": "Class_P",
+                "lambda": "Lambda",
+            }
+        )
+    results.to_csv(
+        f"output/{timestamp}-distance_results.csv",
+        index=False
+    )

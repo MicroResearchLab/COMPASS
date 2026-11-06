@@ -1,11 +1,9 @@
-import shutil
 from model import Net
-from library.spectrum_library import SpectrumCollection
+from Library.spectrum_library import SpectrumCollection
 import pandas as pd
 import tensorflow as tf
 import numpy as np
 import chemparse
-import pickle
 import json
 import os
 import time
@@ -13,22 +11,15 @@ from multiprocessing import Pool
 
 from class_model import Net as class_net
 from matchms.filtering import interpret_pepmass, normalize_intensities
-# from model_tensorflow import Net
 from ms2deepscore import MS2DeepScore
 from toolbox.ms2deepscore import SpectrumBinner
-from ms2deepscore.vector_operations import cosine_similarity
 from tqdm import tqdm as bar
 
 from arg_parser import parse_args
 from com_data_create import com_data_generate
-from toolbox.MGF import MGF, write
-from toolbox.mstool import (chunks,str2array, default_filters,normTanimotoDistance,num2array,checkFormulaSim)
+from toolbox.MGF import MGF
+from toolbox.mstool import (chunks,str2array, default_filters,normTanimotoDistance,checkFormulaSim)
 
-
-from pathlib import Path
-from urllib.request import urlretrieve
-from urllib.parse import urlparse
-from urllib.request import Request, urlopen
 import torch
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
@@ -39,6 +30,7 @@ fpr_database_path = "fpr_database/CONAPUS_pubchem_export.csv"
 input_peak_table = "input/peaktable/"
 SourceDatabasePath = "input/files/"
 TmpPath = "input/tmp_mgf/"
+
 
 params = parse_args()
 print("input params :\n", params)
@@ -57,7 +49,7 @@ extra_bit = 1
 filterByMass = params.filter_mass  # Threshold for relative molecular mass filtering during preprocessing
 filterByFormula = params.filter_formula  # Whether to filter by molecular formula during preprocessing
 
-outputNum = params.output_num  # Number of outputs
+outputNum = int(params.output_num)  # Number of outputs (integer for slicing)
 num_workers = 16  
 
 SourcefileNameFilter = ""
@@ -127,7 +119,6 @@ for file in os.listdir(SourceDatabasePath):
             np_sp,spectrum = com_data_generate(spectrum)
             spectrum = interpret_pepmass(spectrum)
             spectrum = default_filters(spectrum)
-            # Scale peak intensities to maximum of 1
             spectrum = normalize_intensities(spectrum)
             sourceSpectrums.append(spectrum)
             com_spectrum.append(np_sp)
@@ -147,14 +138,14 @@ c_model = class_net(base_features_size=embedding_dim, output_size=len(
     c_classes), is_Multiclass=True)
 c_model = c_model.cpu()
 c_model.eval()
-c_model.load_state_dict(torch.load("class_model/class/final.pth"))
+c_model.load_state_dict(torch.load("class_model/class/final.pth", map_location="cpu"))
 
 sc_classes = json.load(open("class_model/superclass/superclass_cf.json", "r"))
 sc_model = class_net(base_features_size=embedding_dim, output_size=len(
     sc_classes), is_Multiclass=True)
 sc_model = sc_model.cpu()
 sc_model.eval()
-sc_model.load_state_dict(torch.load("class_model/superclass/final.pth"))
+sc_model.load_state_dict(torch.load("class_model/superclass/final.pth", map_location="cpu"))
 
 def argsort(seq, key, reverse=True):
     return sorted(range(len(seq)), key=lambda x: seq[x][key], reverse=reverse)
@@ -169,17 +160,10 @@ def processFpr(input):
         if filterByMass > 0 and abs(float(embedding[2]) - mass) >= filterByMass:
             continue
         if filterByFormula and not checkFormulaSim(chemparse.parse_formula(embedding[5]), chemparse.parse_formula(sourceSpec.get("formula"))):
-            # print(embedding["formula"],chemparse.parse_formula(sourceSpec.get("formula")))
             continue
-        # 14 bit fp    ; 10  MACCS
         sim = normTanimotoDistance(
             pred_fpr, str2array(embedding[14]))
         res = {
-            # "sourceSpec": {
-            #     "mass": sourceSpec.get("mass"),
-            #     "file": sourceFile[1],
-            #     "index": str(sourceFile[0]),
-            # },
                 "inchikey": embedding[1],
                 "name": embedding[4],
                 "mass": embedding[2],
@@ -223,13 +207,13 @@ for sourceSpec in sourceSpectrums[:]:
     print("predicting class and super class ...")
     embedding_vector = torch.tensor(
             reference_vector, dtype=torch.float32).cpu()
-    c_res = c_model(embedding_vector).cpu().detach().numpy()
-    max_index = np.argmax(c_res)
-    c_pred = c_classes[max_index]
-    
-    sc_res = sc_model(embedding_vector).cpu().detach().numpy()
-    max_index = np.argmax(sc_res)
-    sc_pred = sc_classes[max_index]
+    c_res = c_model(embedding_vector).cpu().detach()
+    c_probs = torch.softmax(c_res.reshape(-1), dim=0).numpy()
+    c_pred = c_classes[int(np.argmax(c_probs))]
+
+    sc_res = sc_model(embedding_vector).cpu().detach()
+    sc_probs = torch.softmax(sc_res.reshape(-1), dim=0).numpy()
+    sc_pred = sc_classes[int(np.argmax(sc_probs))]
     print("start matching similar molecules ...")
     if filterByFormula and (sourceSpec.get("formula") == None or len(sourceSpec.get("formula")) < 2):
         print("<- Warning -> filterByFormula has been activated and there are no formula fonund! Considering deactivate the option!")
@@ -260,7 +244,21 @@ for sourceSpec in sourceSpectrums[:]:
 
     mass = float(sourceSpec.get("pepmass")[0])
     res_list = [local_list[i] for i in sim_tops_ids[:outputNum]]
-    class_res.append({"precursor":mass,"file":sourceFiles[count][1],"index":str(sourceFiles[count][0]),"class_pred":c_pred,"superclass_pred":sc_pred})
+    class_res.append({
+        "precursor": mass,
+        "file": sourceFiles[count][1],
+        "index": str(sourceFiles[count][0]),
+        "class_pred": c_pred,
+        "superclass_pred": sc_pred,
+        "class_probabilities": json.dumps(
+            dict(zip(c_classes, c_probs.tolist())),
+            ensure_ascii=False
+        ),
+        "superclass_probabilities": json.dumps(
+            dict(zip(sc_classes, sc_probs.tolist())),
+            ensure_ascii=False
+        )
+    })
     sim_res_top_map+=[{"precursor": mass,
             "file": sourceFiles[count][1],
             "pred_fpr":origin_pred_fpr,
@@ -277,11 +275,8 @@ if not os.path.exists("output/"):
 import pandas as pd
 from datetime import datetime
 df = pd.DataFrame(sim_res_top_map)
-timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+timestamp = datetime.now().strftime("%Y-%m-%d_%H")
 df.to_csv('output/{}-similarity-matching.csv'.format(timestamp), index=False)
 
 df = pd.DataFrame(class_res)
 df.to_csv('output/{}-classification.csv'.format(timestamp), index=False)
-
-with open('output/{}-class-results.json'.format(timestamp), 'w') as f:
-    json.dump(class_res, f, indent=4)
