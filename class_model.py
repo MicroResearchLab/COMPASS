@@ -36,10 +36,22 @@ class Net(nn.Module):
         self.is_Multiclass = is_Multiclass
         self.base_features_size = base_features_size
         self.encoder = nn.Sequential(
-            Linear(base_features_size, 512),
+            Linear(base_features_size, 1024),
             nn.ReLU(), 
-            nn.LayerNorm(512),
-            Linear(512, output_size),
+            nn.LayerNorm(1024),
+            Linear(1024,2048),
+            nn.ReLU(),
+            nn.LayerNorm(2048),
+            Linear(2048,4096),
+            nn.ReLU(),
+            nn.LayerNorm(4096),
+            Linear(4096,2048),
+            nn.ReLU(),
+            nn.LayerNorm(2048),
+            Linear(2048,1024),
+            nn.ReLU(), 
+            nn.LayerNorm(1024),
+            Linear(1024, output_size),
         )
 
         self.tail = nn.LogSoftmax(dim=1)
