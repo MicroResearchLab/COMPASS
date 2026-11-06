@@ -10,8 +10,12 @@ def method1_softmax_div_max(row):
     softmax_result = softmax(meta_data)
     return softmax_result
 
-def mixed_decay(x, alpha=0.025, beta=0.004):
-    return (1 / (1 + x) ** alpha) * np.exp(-beta * x)
+def bell(x):
+    beta = 1.7147581782601855
+    fwhm = 0.6
+
+    x = np.asarray(x, dtype=np.float64)
+    return np.exp(-np.log(2) * (np.abs(x) / fwhm) ** beta)
 
 def distance(vec1, vec2):
     vec1 = np.array(vec1)
@@ -26,13 +30,12 @@ def add_part_3(data_df:pd.DataFrame, class_dict:dict, class_p:dict):
     data_df["Hit-class"] = data_df["short_key"].apply(
         lambda x: class_dict.get(x, 'Unknown')
     )
-    data_df["ABS(match-true)"] = abs(data_df["pubchem_mass"]-data_df["precursor"])
     data_df["class_p"] = data_df["Hit-class"].apply(
         lambda x: class_p.get(x, 1e-20)
     )
-    data_df["lambda"] = data_df["ABS(match-true)"].apply(
-        lambda x: mixed_decay(x, alpha=0.025, beta=0.004)
-    )
+    neutral_mass = data_df["mass"] - PROTON_MASS
+    data_df["ABS(match-true)"] = (data_df["pubchem_mass"] - neutral_mass).abs() / data_df["mass"]
+    data_df["lambda"] = bell(data_df["ABS(match-true)"].to_numpy())
 
 
     for data_df_index in data_df.index:
